@@ -39,11 +39,9 @@ def read_image_list(image_list, image_folder, num_test_images):
         if not line:
             continue
 
-        # might contain a numerical label at the end
-        match = re.match(r'(.*\S)\s+(\d+)$', line)
-        if match:
-            path = match.group(1)
-            ground_truth = int(match.group(2))
+        if match := re.match(r'(.*\S)\s+(\d+)$', line):
+            path = match[1]
+            ground_truth = int(match[2])
         else:
             path = line
             ground_truth = None

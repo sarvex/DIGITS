@@ -63,24 +63,24 @@ class DigitsTransformer(caffe.io.Transformer):
             # update target input dimension such that no resize occurs
             self.inputs[in_] = self.inputs[in_][:2] + data.shape[:2]
             # do we have a mean?
-            if in_ in self.mean:
-                # resize mean if necessary
-                if self.mean[in_].size > 1:
-                    # we are doing mean image subtraction
-                    if self.mean[in_].size != data.size:
-                        # mean image size is different from data size
-                        # => we need to resize the mean image
-                        transpose = self.transpose.get(in_)
-                        if transpose is not None:
-                            # detranspose
-                            self.mean[in_] = self.mean[in_].transpose(
-                                np.argsort(transpose))
-                        self.mean[in_] = caffe.io.resize_image(
-                            self.mean[in_],
-                            data.shape[:2])
-                        if transpose is not None:
-                            # retranspose
-                            self.mean[in_] = self.mean[in_].transpose(transpose)
+            if (
+                in_ in self.mean
+                and self.mean[in_].size > 1
+                and self.mean[in_].size != data.size
+            ):
+                # mean image size is different from data size
+                # => we need to resize the mean image
+                transpose = self.transpose.get(in_)
+                if transpose is not None:
+                    # detranspose
+                    self.mean[in_] = self.mean[in_].transpose(
+                        np.argsort(transpose))
+                self.mean[in_] = caffe.io.resize_image(
+                    self.mean[in_],
+                    data.shape[:2])
+                if transpose is not None:
+                    # retranspose
+                    self.mean[in_] = self.mean[in_].transpose(transpose)
         return caffe.io.Transformer.preprocess(self, in_, data)
 
 
@@ -263,7 +263,7 @@ class CaffeTrainTask(TrainTask):
                 # imresize will not resize if the depth is anything
                 # other than 3 or 4.  If it's 1, imresize expects an
                 # array.
-                if (len(shape) == 2 or (len(shape) == 3 and (shape[2] == 3 or shape[2] == 4))):
+                if len(shape) == 2 or len(shape) == 3 and shape[2] in [3, 4]:
                     mean_image = scipy.misc.imresize(mean_image, (data_shape[2], data_shape[3]))
                 else:
                     mean_image = scipy.misc.imresize(mean_image[:, :, 0],
@@ -276,10 +276,7 @@ class CaffeTrainTask(TrainTask):
 
     def get_mean_pixel(self, mean_file):
         mean_image = self.get_mean_image(mean_file)
-        mean_pixel = None
-        if mean_image is not None:
-            mean_pixel = mean_image.mean(1).mean(1)
-        return mean_pixel
+        return mean_image.mean(1).mean(1) if mean_image is not None else None
 
     def set_mean_value(self, layer, mean_pixel):
         # remove any values that may already be in the network

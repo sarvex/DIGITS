@@ -48,17 +48,13 @@ def get_image_to_video_mapping(devkit_dir):
             map_line = mapping_lines[mapping_index]
             match = re.match('^\s*[\d_]+\s+(\d{4}_\d{2}_\d{2})_drive_(\d{4})_sync\s+(\d+)$\s*$', map_line)
             if not match:
-                raise ValueError('Unrecognized mapping line "%s"' % map_line)
-            date = match.group(1)
-            video_id = match.group(2)
-            video_name = '%s_%s' % (date, video_id)
-            frame_index = int(match.group(3))
+                raise ValueError(f'Unrecognized mapping line "{map_line}"')
             if image_index in image_to_video:
-                raise ValueError('Conflicting mappings for image %s' % image_index)
-            image_to_video[image_index] = {
-                'video': video_name,
-                'frame': frame_index,
-            }
+                raise ValueError(f'Conflicting mappings for image {image_index}')
+            date = match[1]
+            video_id = match[2]
+            video_name = f'{date}_{video_id}'
+            image_to_video[image_index] = {'video': video_name, 'frame': int(match[3])}
 
     return image_to_video
 
@@ -87,7 +83,7 @@ def split_by_video(training_dir, mapping, split_dir,
         new_image_dir = os.path.join(new_images_dir, video_name)
         if not os.path.isdir(new_image_dir):
             os.makedirs(new_image_dir)
-        new_image_fname = '%s_%s%s' % (frame_id, image_index_str, image_ext)
+        new_image_fname = f'{frame_id}_{image_index_str}{image_ext}'
         new_image_path = os.path.join(new_image_dir, new_image_fname)
         if use_symlinks:
             os.symlink(old_image_path, new_image_path)
@@ -95,9 +91,9 @@ def split_by_video(training_dir, mapping, split_dir,
             shutil.copyfile(old_image_path, new_image_path)
 
         # Copy label
-        old_label_fname = '%s.txt' % image_index_str
+        old_label_fname = f'{image_index_str}.txt'
         old_label_path = os.path.abspath(os.path.join(training_dir, 'label_2', old_label_fname))
-        new_label_fname = '%s_%s.txt' % (frame_id, image_index_str)
+        new_label_fname = f'{frame_id}_{image_index_str}.txt'
         new_label_dir = os.path.join(new_labels_dir, video_name)
         if not os.path.isdir(new_label_dir):
             os.makedirs(new_label_dir)
@@ -121,11 +117,11 @@ def split_for_training(split_dir, train_dir, val_dir,
     for images_dirname in os.listdir(os.path.join(split_dir, 'images')):
         match = re.match('^(\d{4})_(\d{2})_(\d{2})_(\d+)$', images_dirname)
         if not match:
-            raise ValueError('Unrecognized format of directory named "%s"' % images_dirname)
+            raise ValueError(f'Unrecognized format of directory named "{images_dirname}"')
         # year = int(match.group(1))
-        month = int(match.group(2))
-        date = int(match.group(3))
-        video_id = int(match.group(4))
+        month = int(match[2])
+        date = int(match[3])
+        video_id = int(match[4])
 
         # Filter out some videos for the validation set
         # XXX this is pretty arbitrary

@@ -124,6 +124,5 @@ class StatusCls(object):
                 self.emit_progress_update()
 
         # Don't invoke callback for INIT
-        if value != Status.INIT:
-            if hasattr(self, 'on_status_update'):
-                self.on_status_update()
+        if value != Status.INIT and hasattr(self, 'on_status_update'):
+            self.on_status_update()
